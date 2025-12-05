@@ -99,7 +99,9 @@ stages:
           - script: |
               cd $(TF_ROOT)
               terraform init -backend=false
-              terraform plan -out=tfplan
+              terraform plan \
+                -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence" \
+                -out=tfplan
               terraform show -json tfplan > terraform_plan.json
             displayName: "Generate Terraform plan JSON"
 

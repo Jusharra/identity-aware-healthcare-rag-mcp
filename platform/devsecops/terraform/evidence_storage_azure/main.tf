@@ -68,6 +68,40 @@ resource "azurerm_storage_container" "containers" {
   container_access_type = "private"
 }
 
+# ---------------------------------------------------------------------------
+# Diagnostic settings: enable Blob read/write/delete logging to Log Analytics
+# ---------------------------------------------------------------------------
+resource "azurerm_monitor_diagnostic_setting" "evidence_storage_logging" {
+  name                       = "evidence-storage-logging"
+  target_resource_id         = azurerm_storage_account.evidence.id
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  # Blob read/write/delete logs – satisfies CKV2_AZURE_21
+  enabled_log {
+    category = "StorageRead"
+    retention_policy {
+      enabled = true
+      days    = 30
+    }
+  }
+
+  enabled_log {
+    category = "StorageWrite"
+    retention_policy {
+      enabled = true
+      days    = 30
+    }
+  }
+
+  enabled_log {
+    category = "StorageDelete"
+    retention_policy {
+      enabled = true
+      days    = 30
+    }
+  }
+}
+
 resource "azurerm_private_endpoint" "evidence_blob" {
   name                = "${var.storage_account_name}-pe-blob"
   location            = var.location

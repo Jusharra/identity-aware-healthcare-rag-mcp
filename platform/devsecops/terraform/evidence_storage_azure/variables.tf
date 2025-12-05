@@ -16,7 +16,8 @@ variable "environment" {
 
 # This is the ID of the Log Analytics Workspace created by security_foundation_azure
 variable "log_analytics_workspace_id" {
-  type = string
+  type        = string
+  description = "Resource ID of the Log Analytics Workspace for evidence storage diagnostics."
 }
 
 # User Assigned Identity for storage account to access Key Vault

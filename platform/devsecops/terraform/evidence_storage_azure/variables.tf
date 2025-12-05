@@ -30,10 +30,6 @@ variable "cmk_key_vault_key_id" {
   description = "The ID of the Key Vault Key to use for storage encryption"
   type        = string
 }
-variable "cmk_key_vault_key_id" {
-  type        = string
-  description = "Key Vault key ID used to encrypt the evidence storage account"
-}
 
 variable "private_endpoint_subnet_id" {
   type        = string

@@ -87,15 +87,6 @@ resource "azurerm_private_endpoint" "evidence_blob" {
   }
 }
 
-resource "azurerm_key_vault_key" "evidence_cmk" {
-  name         = "evidence-cmk"
-  key_vault_id = azurerm_key_vault.security_kv.id
-  key_type     = "RSA"
-  key_size     = 2048
-
-  key_opts = ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
-}
-
 resource "azurerm_monitor_diagnostic_setting" "evidence_storage_diag" {
   name               = "${var.storage_account_name}-diag"
   target_resource_id = azurerm_storage_account.evidence.id

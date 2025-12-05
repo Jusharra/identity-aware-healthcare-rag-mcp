@@ -16,14 +16,31 @@ stages:
         pool:
           vmImage: "ubuntu-latest"
         steps:
+          - checkout: self
+
+          # NEW: install Terraform CLI before you call it
+          - task: Bash@3
+            displayName: "Install Terraform CLI"
+            inputs:
+              targetType: inline
+              script: |
+                set -e
+                TF_VERSION=1.9.2
+                curl -L "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
+                sudo unzip terraform.zip -d /usr/local/bin
+                rm terraform.zip
+                terraform -version
+
           - task: UsePythonVersion@0
             inputs:
               versionSpec: "$(PYTHON_VERSION)"
+
           - script: |
               cd $(TF_ROOT)
               terraform init -backend=false
               terraform validate
             displayName: "Terraform validate (evidence storage)"
+
           - script: |
               pip install -r platform/devsecops/python/requirements-dev.txt
               python -m py_compile lab_platform/identity_gateway/policy_engine.py
@@ -37,9 +54,12 @@ stages:
         pool:
           vmImage: "ubuntu-latest"
         steps:
+          - checkout: self
+
           - task: UsePythonVersion@0
             inputs:
               versionSpec: "$(PYTHON_VERSION)"
+
           - script: |
               pip install checkov
               checkov -d $(TF_ROOT)
@@ -53,14 +73,42 @@ stages:
         pool:
           vmImage: "ubuntu-latest"
         steps:
+          - checkout: self
+
+          # ---- Install Terraform ----
+          - task: Bash@3
+            displayName: "Install Terraform CLI"
+            inputs:
+              targetType: inline
+              script: |
+                set -e
+                TF_VERSION=1.9.2
+                curl -L "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
+                sudo unzip terraform.zip -d /usr/local/bin
+                rm terraform.zip
+                terraform -version
+
+          # ---- Install OPA ----
+          - task: Bash@3
+            displayName: "Install OPA CLI"
+            inputs:
+              targetType: inline
+              script: |
+                set -e
+                OPA_VERSION=0.65.0
+                curl -L -o opa "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
+                chmod +x ./opa
+                sudo mv opa /usr/local/bin/opa
+                opa version
+
           - script: |
               cd $(TF_ROOT)
               terraform init -backend=false
               terraform plan -out=tfplan
               terraform show -json tfplan > terraform_plan.json
             displayName: "Generate Terraform plan JSON"
+
           - script: |
-              # Assumes opa is available in PATH or installed beforehand
               opa eval --format pretty \
                 --input $(TF_ROOT)/terraform_plan.json \
                 --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
@@ -75,6 +123,21 @@ stages:
         pool:
           vmImage: "ubuntu-latest"
         steps:
+          - checkout: self
+
+          # ---- Install Terraform ----
+          - task: Bash@3
+            displayName: "Install Terraform CLI"
+            inputs:
+              targetType: inline
+              script: |
+                set -e
+                TF_VERSION=1.9.2
+                curl -L "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
+                sudo unzip terraform.zip -d /usr/local/bin
+                rm terraform.zip
+                terraform -version
+
           - script: |
               cd $(TF_ROOT)
               terraform init
@@ -91,12 +154,16 @@ stages:
         pool:
           vmImage: "ubuntu-latest"
         steps:
+          - checkout: self
+
           - task: UsePythonVersion@0
             inputs:
               versionSpec: "$(PYTHON_VERSION)"
+
           - script: |
               python platform/devsecops/scripts/generate_evidence_report.py
             displayName: "Generate evidence report"
+
           - publish: platform/evidence
             artifact: evidence_bundle
             displayName: "Publish evidence bundle"

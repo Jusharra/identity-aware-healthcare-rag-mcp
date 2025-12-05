@@ -1,0 +1,8 @@
+{
+  "users": {
+    "phys-123": {
+      "role": "Physician",
+      "mfa_enabled": true
+    }
+  }
+}

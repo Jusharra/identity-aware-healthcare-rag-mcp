@@ -1,0 +1,12 @@
+tools:
+  echo:
+    module: "lab_platform.mcp_layer.mcp_server.tools.echo"
+    function: "run"
+    allowed_requester_roles:
+      - "Demo"
+      - "IAMAdmin"
+      - "GRC"
+
+logging:
+  file: "logs/access.log.jsonl"
+

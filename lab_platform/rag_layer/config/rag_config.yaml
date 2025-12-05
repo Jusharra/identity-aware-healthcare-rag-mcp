@@ -1,0 +1,62 @@
+pinecone:
+  index_name: "healthcare-rag"
+  environment: "us-west1-gcp"   # adjust to your actual Pinecone env
+
+namespaces:
+  company-info:
+    description: "Internal company info, clinic workflows, basic employee knowledge"
+    allowed_roles:
+      - Physician
+      - Nurse
+      - NursePractitioner
+      - MedicalAssistant
+      - FrontDesk
+      - Compliance
+      - IT_Admin
+      - DevSecOps
+      - AI_Agent
+    rag_scopes:
+      - company_info
+      - scheduling_docs
+      - basic_clinical
+
+  clinical:
+    description: "Clinical guidelines, order sets, care pathways, patient education"
+    allowed_roles:
+      - Physician
+      - Nurse
+      - NursePractitioner
+      - MedicalAssistant
+      - AI_Agent
+    rag_scopes:
+      - clinical_all
+      - clinical_department
+
+  grc:
+    description: "GRC, HIPAA/ISO policies, access reviews, audit runbooks"
+    allowed_roles:
+      - Compliance
+      - IT_Admin
+      - DevSecOps
+      - AI_Agent
+    rag_scopes:
+      - grc_policies
+      - access_reviews
+      - audit_support
+      - compliance_docs
+
+  devsecops:
+    description: "DevSecOps pipelines, IaC, security runbooks, IAM/JML automation"
+    allowed_roles:
+      - IT_Admin
+      - DevSecOps
+      - AI_Agent
+    rag_scopes:
+      - devsecops_runbooks
+      - ci_cd_pipelines
+      - iam_automation
+      - incident_response
+
+defaults:
+  top_k: 5
+  max_context_tokens: 2000

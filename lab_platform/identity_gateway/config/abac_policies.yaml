@@ -1,0 +1,52 @@
+roles:
+  Physician:
+    rag_access: ["clinical_all"]
+    mcp_tools: ["identity_check_user_role", "identity_check_MFA_config"]
+    clearance: "clinical_sensitive"
+
+  Nurse:
+    rag_access: ["clinical_department"]
+    mcp_tools: []
+    clearance: "clinical_restricted"
+
+  Compliance:
+    rag_access: ["compliance_docs"]
+    mcp_tools: ["identity_check_MFA_config", "identity_list_user_permissions"]
+    clearance: "clinical_sensitive"
+
+  IT_Admin:
+    rag_access: []
+    mcp_tools: ["*"]          # full IAM / GRC tools
+    clearance: "clinical_sensitive"
+
+  FrontDesk:
+    rag_access: ["scheduling_docs"]
+    mcp_tools: []
+    clearance: "general"
+
+  MedicalAssistant:
+    rag_access: ["basic_clinical"]
+    mcp_tools: []
+    clearance: "clinical_restricted"
+
+  AI_Agent:
+    rag_access: ["automation_internal"]
+    mcp_tools: ["identity_check_user_role"]
+    clearance: "clinical_restricted"
+
+abac_rules:
+  - name: "license_valid_for_clinical_tools"
+    condition: "claims.get('license_status') == 'valid'"
+    deny_when_false: ["clinical_sensitive_tools"]
+
+  - name: "department_scoping"
+    condition: "doc.get('department') == claims.get('department')"
+    applies_to: ["clinical_department"]
+
+  - name: "region_restriction"
+    condition: "claims.get('region') in ['US-West', 'US-East']"
+    deny_when_false: ["regional_access"]
+
+  - name: "clinic_scope"
+    condition: "doc.get('clinic_id') == claims.get('clinic_id')"
+    applies_to: ["clinical_department", "scheduling_docs"]

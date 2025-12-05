@@ -1,0 +1,102 @@
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+variables:
+  TF_ROOT: "platform/devsecops/terraform/evidence_storage_azure"
+  PYTHON_VERSION: "3.11"
+
+stages:
+  - stage: Validate
+    displayName: "Validate Terraform & Python"
+    jobs:
+      - job: validate
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(PYTHON_VERSION)"
+          - script: |
+              cd $(TF_ROOT)
+              terraform init -backend=false
+              terraform validate
+            displayName: "Terraform validate (evidence storage)"
+          - script: |
+              pip install -r platform/devsecops/python/requirements-dev.txt
+              python -m py_compile lab_platform/identity_gateway/policy_engine.py
+            displayName: "Python sanity compile (identity gateway)"
+
+  - stage: Security
+    displayName: "IaC Security Scan"
+    dependsOn: Validate
+    jobs:
+      - job: security
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(PYTHON_VERSION)"
+          - script: |
+              pip install checkov
+              checkov -d $(TF_ROOT)
+            displayName: "Run Checkov on Terraform"
+
+  - stage: PolicyCheck
+    displayName: "OPA Guardrails"
+    dependsOn: Security
+    jobs:
+      - job: policy_check
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - script: |
+              cd $(TF_ROOT)
+              terraform init -backend=false
+              terraform plan -out=tfplan
+              terraform show -json tfplan > terraform_plan.json
+            displayName: "Generate Terraform plan JSON"
+          - script: |
+              # Assumes opa is available in PATH or installed beforehand
+              opa eval --format pretty \
+                --input $(TF_ROOT)/terraform_plan.json \
+                --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
+                "data.terraform.guardrails.deny"
+            displayName: "Evaluate OPA Terraform guardrails"
+
+  - stage: Deploy
+    displayName: "Deploy (manual)"
+    dependsOn: PolicyCheck
+    jobs:
+      - job: deploy
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - script: |
+              cd $(TF_ROOT)
+              terraform init
+              terraform apply -auto-approve
+            displayName: "Terraform apply"
+        # Manual approval gate in Azure DevOps UI
+        # (configure environment with approvals)
+
+  - stage: Evidence
+    displayName: "Generate Evidence Bundle"
+    dependsOn: Deploy
+    jobs:
+      - job: evidence
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "$(PYTHON_VERSION)"
+          - script: |
+              python platform/devsecops/scripts/generate_evidence_report.py
+            displayName: "Generate evidence report"
+          - publish: platform/evidence
+            artifact: evidence_bundle
+            displayName: "Publish evidence bundle"

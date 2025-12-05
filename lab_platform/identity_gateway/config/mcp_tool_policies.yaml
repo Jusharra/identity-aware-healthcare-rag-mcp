@@ -1,0 +1,31 @@
+roles:
+  Physician:
+    allowed_tools:
+      - company_get_clinic_workflow
+      - company_lookup_policy
+      - company_list_allowed_actions
+
+  Nurse:
+    allowed_tools:
+      - company_get_clinic_workflow   # maybe read-only helper
+
+  Compliance:
+    allowed_tools:
+      - company_lookup_policy
+      - company_list_allowed_actions
+      - grc_lookup_control
+      - grc_map_policy_to_framework
+
+  DevSecOps:
+    allowed_tools:
+      - restrict_bucket_policy
+      - grant_temp_admin
+      - identity_check_user_role
+      - identity_list_user_permissions
+      - identity_check_MFA_config
+      - identity_assign_role
+      - identity_disable_user
+
+  IT_Admin:
+    allowed_tools:
+      - "*"   # wildcard: can run anything

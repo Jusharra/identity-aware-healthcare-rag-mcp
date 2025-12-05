@@ -16,24 +16,19 @@ stages:
         pool:
           vmImage: "ubuntu-latest"
         steps:
-          - checkout: self
-
-          # NEW: install Terraform CLI before you call it
-          - task: Bash@3
-            displayName: "Install Terraform CLI"
-            inputs:
-              targetType: inline
-              script: |
-                set -e
-                TF_VERSION=1.9.2
-                curl -L "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
-                sudo unzip terraform.zip -d /usr/local/bin
-                rm terraform.zip
-                terraform -version
-
           - task: UsePythonVersion@0
             inputs:
               versionSpec: "$(PYTHON_VERSION)"
+
+          # 👇 Install Terraform via bash (keep this)
+          - script: |
+              set -e
+              TF_VERSION=1.8.5
+              curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
+              sudo unzip -o terraform.zip -d /usr/local/bin
+              rm terraform.zip
+              terraform -version
+            displayName: "Install Terraform CLI"
 
           - script: |
               cd $(TF_ROOT)

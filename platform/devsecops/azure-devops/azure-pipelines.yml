@@ -131,7 +131,6 @@ stages:
           vmImage: "ubuntu-latest"
         steps:
           - checkout: self
-
           # Install Terraform using the same method as in the validate job
           - script: |
               set -e
@@ -141,7 +140,6 @@ stages:
               rm terraform.zip
               terraform -version
             displayName: "Install Terraform CLI"
-
           # 🔐 Azure login + Terraform apply using service connection
           - task: AzureCLI@2
             displayName: "Terraform apply"
@@ -153,24 +151,19 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 set -e
-
                 # Wire service connection SP into Terraform env vars
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
                 export ARM_SUBSCRIPTION_ID="$subscriptionId"
-
                 echo "Using ARM_TENANT_ID=$ARM_TENANT_ID"
                 echo "Using ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
-
                 cd $(TF_ROOT)
-
                 terraform init
-
                 terraform apply -auto-approve -input=false \
-                  -var="resource_group_name=rg-evidence-lab" \
-                  -var="location=westus3" \
-                  -var="storage_account_name=ragevidlab001" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
                   -var="environment=dev" \
                   -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
                   -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \

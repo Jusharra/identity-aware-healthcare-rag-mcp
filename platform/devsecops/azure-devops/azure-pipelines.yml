@@ -8,6 +8,10 @@ variables:
   TF_ROOT: "platform/devsecops/terraform/evidence_storage_azure"
   PYTHON_VERSION: "3.11"
 
+   # 🔐 Azure subscription context for Terraform (used in PolicyCheck)
+  SUBSCRIPTION_ID: "ef83b64d-39a9-4b0f-af33-06968ebd9a0a"
+  TENANT_ID: "0ff0f2e4-1bd5-4dca-bcc0-ea9dbaf4ea47"
+
 stages:
   - stage: Validate
     displayName: "Validate Terraform & Python"
@@ -94,26 +98,24 @@ stages:
                 opa version
 
           - script: |
+              set -e
               cd $(TF_ROOT)
 
               terraform init -backend=false
 
               terraform plan \
-                -input=false \
-                -lock=false \
                 -out=tfplan \
-                -var="resource_group_name=rg-evidence-lab" \
-                -var="location=westus3" \
-                -var="storage_account_name=ragevidlab001" \
+                -var="subscription_id=$(SUBSCRIPTION_ID)" \
+                -var="tenant_id=$(TENANT_ID)" \
+                -var="resource_group_name=rg-rag-mcp-sec" \
+                -var="location=westus" \
+                -var="storage_account_name=ragmcpevidence001" \
                 -var="environment=dev" \
                 -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
                 -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \
                 -var="private_endpoint_subnet_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                 -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
-
-              terraform show -json tfplan > terraform_plan.json
             displayName: "Generate Terraform plan JSON"
-
 
           - script: |
               opa eval --format pretty \

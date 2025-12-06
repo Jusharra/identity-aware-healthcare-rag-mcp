@@ -144,23 +144,30 @@ stages:
           - task: AzureCLI@2
             displayName: "Terraform apply"
             inputs:
-              # ⬇️ Use the EXACT name of your service connection
-              azureSubscription: "mcp-azure-terraform-spn"
+              azureSubscription: "mcp-azure-terraform-spn"   # ✅ your service connection name
               scriptType: bash
               scriptLocation: inlineScript
               addSpnToEnvironment: true
               inlineScript: |
                 set -e
-                # Wire service connection SP into Terraform env vars
+
+                echo "SPN: $servicePrincipalId"
+                echo "SUB: $subscriptionId"
+                echo "TENANT: $tenantId"
+
+                # Make them available as ARM_* too (not strictly needed, but fine)
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
                 export ARM_SUBSCRIPTION_ID="$subscriptionId"
-                echo "Using ARM_TENANT_ID=$ARM_TENANT_ID"
-                echo "Using ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
+
                 cd $(TF_ROOT)
+
                 terraform init
+
                 terraform apply -auto-approve -input=false \
+                  -var="subscription_id=$subscriptionId" \
+                  -var="tenant_id=$tenantId" \
                   -var="resource_group_name=rg-rag-mcp-sec" \
                   -var="location=westus" \
                   -var="storage_account_name=ragmcpevidence001" \

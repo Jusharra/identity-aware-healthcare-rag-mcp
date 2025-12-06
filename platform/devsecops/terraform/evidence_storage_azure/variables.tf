@@ -37,3 +37,13 @@ variable "private_endpoint_subnet_id" {
   description = "Subnet ID for the private endpoint used by the evidence storage account"
 }
 
+variable "subscription_id" {
+  type        = string
+  description = "Azure subscription ID used by the evidence storage account"
+}
+
+variable "tenant_id" {
+  type        = string
+  description = "Azure AD tenant ID used by the evidence storage account"
+}
+

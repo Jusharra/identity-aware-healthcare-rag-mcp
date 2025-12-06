@@ -9,6 +9,10 @@ terraform {
 
 provider "azurerm" {
   features {}
+
+  # 👇 New: make the subscription/tenant explicit
+  subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
 }
 
 # 1. Evidence Storage Account

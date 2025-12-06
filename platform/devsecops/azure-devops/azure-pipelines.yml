@@ -95,12 +95,25 @@ stages:
 
           - script: |
               cd $(TF_ROOT)
+
               terraform init -backend=false
+
               terraform plan \
-                -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence" \
-                -out=tfplan
+                -input=false \
+                -lock=false \
+                -out=tfplan \
+                -var="resource_group_name=rg-evidence-lab" \
+                -var="location=westus3" \
+                -var="storage_account_name=ragevidlab001" \
+                -var="environment=dev" \
+                -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \
+                -var="private_endpoint_subnet_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+
               terraform show -json tfplan > terraform_plan.json
             displayName: "Generate Terraform plan JSON"
+
 
           - script: |
               opa eval --format pretty \

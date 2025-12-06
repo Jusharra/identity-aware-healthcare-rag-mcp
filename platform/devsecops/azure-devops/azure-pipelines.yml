@@ -84,39 +84,46 @@ stages:
               terraform -version
             displayName: "Install Terraform CLI"
 
-          # Install OPA
-          - task: Bash@3
-            displayName: "Install OPA CLI"
-            inputs:
-              targetType: inline
-              script: |
-                set -e
-                OPA_VERSION=0.65.0
-                curl -L -o opa "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
-                chmod +x ./opa
-                sudo mv opa /usr/local/bin/opa
-                opa version
-
-          - script: |
-              set -e
-              cd $(TF_ROOT)
-
-              terraform init -backend=false
-
-              terraform plan \
-                -out=tfplan \
-                -var="subscription_id=$(SUBSCRIPTION_ID)" \
-                -var="tenant_id=$(TENANT_ID)" \
-                -var="resource_group_name=rg-rag-mcp-sec" \
-                -var="location=westus" \
-                -var="storage_account_name=ragmcpevidence001" \
-                -var="environment=dev" \
-                -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
-                -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \
-                -var="private_endpoint_subnet_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
-                -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+          # ---- Terraform plan using the service connection ----
+          - task: AzureCLI@2
             displayName: "Generate Terraform plan JSON"
+            inputs:
+              azureSubscription: "mcp-azure-terraform-spn"   # 🔁 same as Deploy
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -e
+                # Feed SPN creds from the service connection into Terraform
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID="$subscriptionId"
 
+                echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
+                echo "ARM_TENANT_ID=$ARM_TENANT_ID"
+
+                cd $(TF_ROOT)
+
+                terraform init -backend=false
+
+                terraform plan \
+                  -out=tfplan \
+                  -input=false \
+                  -var="subscription_id=$(SUBSCRIPTION_ID)" \
+                  -var="tenant_id=$(TENANT_ID)" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
+                  -var="environment=dev" \
+                  -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                  -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \
+                  -var="private_endpoint_subnet_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                  -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+
+                terraform show -json tfplan > terraform_plan.json
+
+          # ---- OPA eval stays the same ----
           - script: |
               opa eval --format pretty \
                 --input $(TF_ROOT)/terraform_plan.json \

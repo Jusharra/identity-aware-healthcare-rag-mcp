@@ -35,8 +35,21 @@ resource "azurerm_storage_account" "evidence" {
     expiration_period = "P7D"
   }
   blob_properties {
+    # Soft delete for blobs
     delete_retention_policy {
       days = 30
+    }
+  }
+
+  # Enable classic Storage Analytics logging for Queue service
+  # Satisfies CKV_AZURE_33 (read/write/delete logging on queues)
+  queue_properties {
+    logging {
+      read                 = true
+      write                = true
+      delete               = true
+      version              = "1.0"
+      retention_policy_days = 30
     }
   }
 
@@ -68,39 +81,6 @@ resource "azurerm_storage_container" "containers" {
   container_access_type = "private"
 }
 
-# ---------------------------------------------------------------------------
-# Diagnostic settings: enable Blob read/write/delete logging to Log Analytics
-# ---------------------------------------------------------------------------
-resource "azurerm_monitor_diagnostic_setting" "evidence_storage_logging" {
-  name                       = "evidence-storage-logging"
-  target_resource_id         = azurerm_storage_account.evidence.id
-  log_analytics_workspace_id = var.log_analytics_workspace_id
-
-  # Blob read/write/delete logs – satisfies CKV2_AZURE_21
-  enabled_log {
-    category = "StorageRead"
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
-  }
-
-  enabled_log {
-    category = "StorageWrite"
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
-  }
-
-  enabled_log {
-    category = "StorageDelete"
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
-  }
-}
 
 resource "azurerm_private_endpoint" "evidence_blob" {
   name                = "${var.storage_account_name}-pe-blob"
@@ -121,14 +101,17 @@ resource "azurerm_private_endpoint" "evidence_blob" {
   }
 }
 
-resource "azurerm_monitor_diagnostic_setting" "evidence_storage_diag" {
-  name               = "${var.storage_account_name}-diag"
-  target_resource_id = azurerm_storage_account.evidence.id
+# Diagnostic settings – enable Blob service read/write/delete logging to Log Analytics
+resource "azurerm_monitor_diagnostic_setting" "evidence_blob_logging" {
+  name = "${var.storage_account_name}-blob-logging"
 
-  # Store diagnostics in the same account for the lab;
-  # in production you’d point this at a separate log store.
-  storage_account_id = azurerm_storage_account.evidence.id
+  # IMPORTANT: target the Blob service, not just the storage account
+  target_resource_id = "${azurerm_storage_account.evidence.id}/blobServices/default"
 
+  # Send logs to Log Analytics (your existing workspace variable)
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+
+  # Blob read/write/delete logs – satisfies CKV2_AZURE_21
   log {
     category = "StorageRead"
     enabled  = true
@@ -164,8 +147,8 @@ resource "azurerm_monitor_diagnostic_setting" "evidence_storage_diag" {
     enabled  = true
 
     retention_policy {
-      enabled = true
-      days    = 30
+      enabled = false
+      days    = 0
     }
   }
 }

@@ -147,7 +147,7 @@ stages:
             displayName: "Terraform apply"
             inputs:
               # ⬇️ Use the EXACT name of your service connection
-              azureSubscription: "DevSecOps"
+              azureSubscription: "mcp-azure-terraform-spn"
               scriptType: bash
               scriptLocation: inlineScript
               addSpnToEnvironment: true

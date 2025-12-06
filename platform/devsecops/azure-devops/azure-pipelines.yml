@@ -132,18 +132,15 @@ stages:
         steps:
           - checkout: self
 
-          # ---- Install Terraform ----
-          - task: Bash@3
+          # Install Terraform using the same method as in the validate job
+          - script: |
+              set -e
+              TF_VERSION=1.8.5
+              curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
+              sudo unzip -o terraform.zip -d /usr/local/bin
+              rm terraform.zip
+              terraform -version
             displayName: "Install Terraform CLI"
-            inputs:
-              targetType: inline
-              script: |
-                set -e
-                TF_VERSION=1.9.2
-                curl -L "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
-                sudo unzip terraform.zip -d /usr/local/bin
-                rm terraform.zip
-                terraform -version
 
           - script: |
               cd $(TF_ROOT)

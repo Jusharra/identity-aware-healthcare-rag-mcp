@@ -33,11 +33,11 @@ resource "azurerm_storage_account" "evidence" {
   shared_access_key_enabled     = false           # CKV2_AZURE_40
 
   # SAS expiration policy – force short-lived SAS
-  sas_policy {                                  # CKV2_AZURE_41
-    expiration_action = "Log"
-    # ISO-8601 duration, e.g. P7D = 7 days
-    expiration_period = "P7D"
-  }
+  sas_policy {
+  expiration_action = "Log"
+  # 7 days, in DD.HH:MM:SS format
+  expiration_period = "07.00:00:00"
+}
   blob_properties {
     # Soft delete for blobs
     delete_retention_policy {

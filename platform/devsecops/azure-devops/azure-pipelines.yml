@@ -86,50 +86,39 @@ stages:
 
           # ---- Terraform plan using the service connection ----
           - task: AzureCLI@2
-            displayName: "Generate Terraform plan JSON"
+            displayName: "Terraform apply"
             inputs:
-              azureSubscription: "mcp-azure-terraform-spn"   # 🔁 same as Deploy
+              azureSubscription: "mcp-azure-terraform-spn"
               scriptType: bash
               scriptLocation: inlineScript
               addSpnToEnvironment: true
               inlineScript: |
                 set -e
-                # Feed SPN creds from the service connection into Terraform
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
                 export ARM_SUBSCRIPTION_ID="$subscriptionId"
 
-                echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
-                echo "ARM_TENANT_ID=$ARM_TENANT_ID"
-
                 cd $(TF_ROOT)
+                terraform init
 
-                terraform init -backend=false
-
-                terraform plan \
-                  -out=tfplan \
-                  -input=false \
-                  -var="subscription_id=$(SUBSCRIPTION_ID)" \
-                  -var="tenant_id=$(TENANT_ID)" \
+                terraform apply -auto-approve -input=false \
                   -var="resource_group_name=rg-rag-mcp-sec" \
                   -var="location=westus" \
                   -var="storage_account_name=ragmcpevidence001" \
                   -var="environment=dev" \
-                  -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
-                  -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \
-                  -var="private_endpoint_subnet_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
-                  -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+                  -var="user_assigned_identity_id= bf8c5c12-3265-433d-b762-431b59383c3a" \
+                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
+                  -var="private_endpoint_subnet_id=/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub" \
+                  -var="log_analytics_workspace_id=/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
 
-                terraform show -json tfplan > terraform_plan.json
-
-          # ---- OPA eval stays the same ----
-          - script: |
-              opa eval --format pretty \
-                --input $(TF_ROOT)/terraform_plan.json \
-                --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
-                "data.terraform.guardrails.deny"
-            displayName: "Evaluate OPA Terraform guardrails"
+                    # ---- OPA eval stays the same ----
+                    - script: |
+                        opa eval --format pretty \
+                          --input $(TF_ROOT)/terraform_plan.json \
+                          --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
+                          "data.terraform.guardrails.deny"
+                      displayName: "Evaluate OPA Terraform guardrails"
 
   - stage: Deploy
     displayName: "Deploy (manual)"

@@ -142,38 +142,29 @@ stages:
           - task: AzureCLI@2
             displayName: "Terraform apply"
             inputs:
-              azureSubscription: "mcp-azure-terraform-spn"   # ✅ your service connection name
+              azureSubscription: "mcp-azure-terraform-spn"
               scriptType: bash
               scriptLocation: inlineScript
               addSpnToEnvironment: true
               inlineScript: |
                 set -e
-
-                echo "SPN: $servicePrincipalId"
-                echo "SUB: $subscriptionId"
-                echo "TENANT: $tenantId"
-
-                # Make them available as ARM_* too (not strictly needed, but fine)
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
                 export ARM_SUBSCRIPTION_ID="$subscriptionId"
 
                 cd $(TF_ROOT)
-
                 terraform init
 
                 terraform apply -auto-approve -input=false \
-                  -var="subscription_id=$subscriptionId" \
-                  -var="tenant_id=$tenantId" \
                   -var="resource_group_name=rg-rag-mcp-sec" \
                   -var="location=westus" \
                   -var="storage_account_name=ragmcpevidence001" \
                   -var="environment=dev" \
-                  -var="user_assigned_identity_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
-                  -var="cmk_key_vault_key_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-kv/providers/Microsoft.KeyVault/vaults/kv-security/keys/kv-evidence-key" \
-                  -var="private_endpoint_subnet_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
-                  -var="log_analytics_workspace_id=/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+                  -var="user_assigned_identity_id= bf8c5c12-3265-433d-b762-431b59383c3a" \
+                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
+                  -var="private_endpoint_subnet_id=/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub" \
+                  -var="log_analytics_workspace_id=/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
 
 
   - stage: Evidence

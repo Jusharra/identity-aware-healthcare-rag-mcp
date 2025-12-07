@@ -53,15 +53,6 @@ resource "azurerm_storage_account" "evidence" {
 
   # Enable classic Storage Analytics logging for Queue service
   # Satisfies CKV_AZURE_33 (read/write/delete logging on queues)
-  queue_properties {
-    logging {
-      read                 = true
-      write                = true
-      delete               = true
-      version              = "1.0"
-      retention_policy_days = 30
-    }
-  }
 
   identity {
     type = "SystemAssigned, UserAssigned"

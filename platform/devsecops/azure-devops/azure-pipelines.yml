@@ -83,6 +83,15 @@ stages:
               rm terraform.zip
               terraform -version
             displayName: "Install Terraform CLI"
+          # ---- Install OPA ----
+          - script: |
+              set -e
+              OPA_VERSION=0.65.0
+              curl -fsSL -o opa "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
+              chmod +x opa
+              sudo mv opa /usr/local/bin/opa
+              opa version
+            displayName: "Install OPA CLI"
 
           # ---- Terraform plan using the service connection ----
           - task: AzureCLI@2
@@ -113,14 +122,17 @@ stages:
                   -var="cmk_key_vault_key_id=0Du7EeoWmxOwRFv9KwlsASY8nTfKGsSB3p8i40BVD+7EgkjgB9iZpHv9Mnp0p40UWzMh9I60Y85hWhguh0L5hfguoCZMvyDdfgPsqq+KyZrkiBT7npwRv3OtpH67bnZWTcg3E4lXX5W6/Vi+VjUm0P+HwDzoPUMqxhcv3kv52kLd+8ixqR0UfwwkydqeD3ugu7M+rIqT9fMBipbHHw6qhqwzQrJj+glhf/rdLAdDLPqbjA+/vt2tkSTzpwVpQIUwMAF+nqCkDKDllhYh8PQZWPv8KjGceOg9vLKM8bfr9Gr6YCIsH6D0EzgeMyZ6ttWjwqa5Uh6iNKUpQuRQ0KsdQQ==" \
                   -var="private_endpoint_subnet_id=/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub" \
                   -var="log_analytics_workspace_id=/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+                terraform show -json tfplan > terraform_plan.json
 
-                    # ---- OPA eval stays the same ----
-                    - script: |
-                        opa eval --format pretty \
-                          --input $(TF_ROOT)/terraform_plan.json \
-                          --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
-                          "data.terraform.guardrails.deny"
-                      displayName: "Evaluate OPA Terraform guardrails"
+            # ---- OPA eval stays the same ----
+
+          - script: |
+                  opa eval --format pretty \
+                    --input $(TF_ROOT)/terraform_plan.json \
+                    --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
+                    "data.terraform.guardrails.deny"
+            displayName: "Evaluate OPA Terraform guardrails"               
+                
 
   - stage: Deploy
     displayName: "Deploy (manual)"

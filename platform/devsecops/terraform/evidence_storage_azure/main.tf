@@ -25,12 +25,18 @@ resource "azurerm_storage_account" "evidence" {
   # Use geo-redundant replication for critical evidence
   account_replication_type = "GRS"
 
-  # Security hardening
-  min_tls_version               = "TLS1_2"        # CKV_AZURE_44
+    # Security hardening
+  min_tls_version            = "TLS1_2"        # CKV_AZURE_44
   https_traffic_only_enabled = true
-  allow_nested_items_to_be_public = false         # already there
-  public_network_access_enabled = false           # CKV_AZURE_59
-  shared_access_key_enabled     = false           # CKV2_AZURE_40
+  allow_nested_items_to_be_public = false           # already there
+  public_network_access_enabled   = false           # CKV_AZURE_59
+  # NOTE:
+  # shared_access_key_enabled is intentionally left as default (true)
+  # because the azurerm provider currently needs key-based auth
+  # to manage queue logging properties.
+  # We enforce access control via RBAC & private endpoints instead.
+  # shared_access_key_enabled     = false           # Disabled due to provider limitation
+
 
   # SAS expiration policy – force short-lived SAS
   sas_policy {

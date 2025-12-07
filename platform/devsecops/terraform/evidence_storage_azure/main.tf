@@ -35,7 +35,7 @@ resource "azurerm_storage_account" "evidence" {
   # because the azurerm provider currently needs key-based auth
   # to manage queue logging properties.
   # We enforce access control via RBAC & private endpoints instead.
-  # shared_access_key_enabled     = false           # Disabled due to provider limitation
+  shared_access_key_enabled     = false           # Disabled due to provider limitation
 
 
   # SAS expiration policy – force short-lived SAS

@@ -21,8 +21,6 @@ resource "azurerm_storage_account" "evidence" {
   resource_group_name      = var.resource_group_name
   location                 = var.location
   account_tier             = "Standard"
-
-  # Use geo-redundant replication for critical evidence
   account_replication_type = "GRS"
 
     # Security hardening
@@ -36,7 +34,6 @@ resource "azurerm_storage_account" "evidence" {
   # to manage queue logging properties.
   # We enforce access control via RBAC & private endpoints instead.
   shared_access_key_enabled     = false           # Disabled due to provider limitation
-
 
   # SAS expiration policy – force short-lived SAS
   sas_policy {

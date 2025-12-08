@@ -72,8 +72,9 @@ resource "azurerm_storage_account" "evidence" {
   }
 }
 
-# Add Storage Blob Data Contributor role assignment
+# Add Storage Blob Data Contributor role assignment (only if service_principal_object_id is provided)
 resource "azurerm_role_assignment" "storage_blob_contributor" {
+  count                = var.service_principal_object_id != "" ? 1 : 0
   scope                = azurerm_storage_account.evidence.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = var.service_principal_object_id

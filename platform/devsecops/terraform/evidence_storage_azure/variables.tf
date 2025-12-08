@@ -48,8 +48,13 @@ variable "tenant_id" {
 }
 
 variable "service_principal_object_id" {
-  description = "The object ID of the service principal for role assignment"
+  description = "The object ID of the service principal for role assignment. If not provided, the role assignment will be skipped."
   type        = string
+  default     = ""
+  validation {
+    condition     = var.service_principal_object_id == "" || can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.service_principal_object_id))
+    error_message = "The service_principal_object_id must be a valid Azure AD Object ID (GUID)."
+  }
 }
 
 variable "vnet_resource_group_name" {

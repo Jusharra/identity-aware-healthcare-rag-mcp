@@ -10,9 +10,13 @@ terraform {
 provider "azurerm" {
   features {}
 
-  # 👇 New: make the subscription/tenant explicit
+  # Explicit subscription and tenant configuration
   subscription_id = var.subscription_id
   tenant_id       = var.tenant_id
+  
+  # Skip provider registration and credentials validation
+  skip_provider_registration = true
+  storage_use_azuread        = true
 }
 
 # 1. Evidence Storage Account

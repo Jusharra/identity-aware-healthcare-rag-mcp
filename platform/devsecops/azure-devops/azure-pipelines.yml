@@ -162,60 +162,60 @@ stages:
               terraform -version
             displayName: "Install Terraform CLI"
 
-                # 🔐 Azure login + Terraform import/apply using service connection
+                # 🔐 Azure login + Terraform import + apply using service connection
           - task: AzureCLI@2
             displayName: "Terraform import + apply"
             inputs:
-              azureSubscription: "mcp-azure-terraform-spn"   # your existing service connection
+              azureSubscription: "mcp-azure-terraform-spn"   # your service connection
               scriptType: bash
               scriptLocation: inlineScript
               addSpnToEnvironment: true
               inlineScript: |
                 set -e
 
-                # Wire service connection SP into Terraform env vars for azurerm provider
+                echo "Logged in as:"
+                az account show -o table
+
+                # Service connection env vars from AzureCLI@2
+                #   $servicePrincipalId
+                #   $servicePrincipalKey
+                #   $tenantId
+                #   $subscriptionId
+
+                # 👉 Export for Terraform (ARM_* + TF_VAR_*)
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
                 export ARM_SUBSCRIPTION_ID="$subscriptionId"
 
-                # 👇 Tell Terraform NOT to ever prompt
-                export TF_INPUT=0
-                export TF_CLI_ARGS="-input=false"
-
-                # 👇 Feed ALL required TF variables so import/apply never ask for values
-                export TF_VAR_subscription_id="ef83b64d-39a9-4b0f-af33-06968ebd9a0a"
-                export TF_VAR_tenant_id="0ff0f2e4-1bd5-4dca-bcc0-ea9dbaf4ea47"
-
-                export TF_VAR_resource_group_name="rg-rag-mcp-sec"
-                export TF_VAR_location="westus"
-                export TF_VAR_storage_account_name="ragmcpevidence001"
-                export TF_VAR_environment="dev"
-
-                export TF_VAR_user_assigned_identity_id="/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab"
-                export TF_VAR_cmk_key_vault_key_id="https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key"
-                export TF_VAR_private_endpoint_subnet_id="/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Network/virtualNetworks/vnet-rag-mcp-sec/subnets/snet-private-endpoints"
-                export TF_VAR_log_analytics_workspace_id="/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
+                export TF_VAR_subscription_id="$subscriptionId"
+                export TF_VAR_tenant_id="$tenantId"
 
                 echo "Using ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
                 echo "Using TF_VAR_subscription_id=$TF_VAR_subscription_id"
+                echo "Using TF_VAR_tenant_id=$TF_VAR_tenant_id"
 
                 cd $(TF_ROOT)
 
                 terraform init
 
-                # 🔁 Import storage account into state if it's not there yet
-                if ! terraform state show azurerm_storage_account.evidence >/dev/null 2>&1; then
-                  echo "State missing azurerm_storage_account.evidence – importing existing resource..."
-                  terraform import \
-                    azurerm_storage_account.evidence \
-                    "/subscriptions/ef83b64d-39a9-4b0f-af33-06968ebd9a0a/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Storage/storageAccounts/ragmcpevidence001"
-                else
-                  echo "azurerm_storage_account.evidence already in state – skipping import."
-                fi
+                # Import existing storage account if not yet in state
+                terraform import \
+                  azurerm_storage_account.evidence \
+                  "/subscriptions/$TF_VAR_subscription_id/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Storage/storageAccounts/ragmcpevidence001" \
+                  || echo "Storage account already imported or not found; continuing..."
 
-                # ✅ Apply full config
-                terraform apply -auto-approve
+                terraform apply -auto-approve -input=false \
+                  -var="subscription_id=$TF_VAR_subscription_id" \
+                  -var="tenant_id=$TF_VAR_tenant_id" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
+                  -var="environment=dev" \
+                  -var="user_assigned_identity_id=/subscriptions/$TF_VAR_subscription_id/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                  -var="cmk_key_vault_key_id=/subscriptions/$TF_VAR_subscription_id/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.KeyVault/vaults/kv-security-ragmcp/keys/kv-evidence-key" \
+                  -var="private_endpoint_subnet_id=/subscriptions/$TF_VAR_subscription_id/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                  -var="log_analytics_workspace_id=/subscriptions/$TF_VAR_subscription_id/resourceGroups/rg-logs/providers/Microsoft.OperationalInsights/workspaces/law-evidence"
 
 
   - stage: Evidence

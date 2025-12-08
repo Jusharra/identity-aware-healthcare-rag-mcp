@@ -141,8 +141,6 @@ stages:
                 --data platform/governance/policies_as_code/opa/terraform_guardrails.rego \
                 "data.terraform.guardrails.deny"
             displayName: "Evaluate OPA Terraform guardrails"
-              
-                
 
   - stage: Deploy
     displayName: "Deploy (manual)"

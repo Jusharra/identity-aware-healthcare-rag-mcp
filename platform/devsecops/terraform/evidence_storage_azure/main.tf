@@ -71,6 +71,14 @@ resource "azurerm_storage_account" "evidence" {
     purpose     = "rag-mcp-evidence"
   }
 }
+
+# Add Storage Blob Data Contributor role assignment
+resource "azurerm_role_assignment" "storage_blob_contributor" {
+  scope                = azurerm_storage_account.evidence.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.service_principal_object_id
+}
+
 # 2. Evidence Containers
 locals {
   containers = ["docs-raw", "logs", "evidence"]
@@ -87,7 +95,7 @@ resource "azurerm_storage_container" "containers" {
 resource "azurerm_private_endpoint" "evidence_blob" {
   name                = "${var.storage_account_name}-pe-blob"
   location            = var.location
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.vnet_resource_group_name  # Use the VNet's resource group
   subnet_id           = var.private_endpoint_subnet_id
 
   private_service_connection {
@@ -105,52 +113,28 @@ resource "azurerm_private_endpoint" "evidence_blob" {
 
 # Diagnostic settings – enable Blob service read/write/delete logging to Log Analytics
 resource "azurerm_monitor_diagnostic_setting" "evidence_blob_logging" {
-  name = "${var.storage_account_name}-blob-logging"
-
-  # IMPORTANT: target the Blob service, not just the storage account
-  target_resource_id = "${azurerm_storage_account.evidence.id}/blobServices/default"
-
-  # Send logs to Log Analytics (your existing workspace variable)
+  name                       = "${var.storage_account_name}-blob-logging"
+  target_resource_id         = "${azurerm_storage_account.evidence.id}/blobServices/default"
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
   # Blob read/write/delete logs – satisfies CKV2_AZURE_21
   log {
     category = "StorageRead"
     enabled  = true
-
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
   }
 
   log {
     category = "StorageWrite"
     enabled  = true
-
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
   }
 
   log {
     category = "StorageDelete"
     enabled  = true
-
-    retention_policy {
-      enabled = true
-      days    = 30
-    }
   }
 
   metric {
     category = "Transaction"
     enabled  = true
-
-    retention_policy {
-      enabled = false
-      days    = 0
-    }
   }
 }

@@ -47,3 +47,14 @@ variable "tenant_id" {
   description = "Azure AD tenant ID used by the evidence storage account"
 }
 
+variable "service_principal_object_id" {
+  description = "The object ID of the service principal for role assignment"
+  type        = string
+}
+
+variable "vnet_resource_group_name" {
+  description = "The name of the resource group containing the VNet"
+  type        = string
+  default     = "RG-RAG-MCP-SEC"
+}
+

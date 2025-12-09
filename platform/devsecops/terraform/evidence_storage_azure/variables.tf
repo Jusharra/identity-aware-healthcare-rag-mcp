@@ -39,12 +39,23 @@ variable "private_endpoint_subnet_id" {
 
 variable "subscription_id" {
   type        = string
-  description = "Azure subscription ID used by the evidence storage account"
+  description = "Azure subscription ID for this environment"
 }
 
 variable "tenant_id" {
   type        = string
-  description = "Azure AD tenant ID used by the evidence storage account"
+  description = "Azure AD tenant ID"
+}
+
+variable "client_id" {
+  type        = string
+  description = "Service principal client ID used by Terraform"
+}
+
+variable "client_secret" {
+  type        = string
+  sensitive   = true
+  description = "Service principal client secret used by Terraform"
 }
 
 variable "service_principal_object_id" {

@@ -10,14 +10,17 @@ terraform {
 provider "azurerm" {
   features {}
 
-  # Explicit subscription and tenant configuration
+  storage_use_azuread = true  # Add this line
+
+
   subscription_id = var.subscription_id
   tenant_id       = var.tenant_id
-  
-  # Skip provider registration and credentials validation
-  skip_provider_registration = true
-  storage_use_azuread        = true
+
+  # Using SP credentials (for local + pipeline)
+  client_id     = var.client_id
+  client_secret = var.client_secret
 }
+
 
 # 1. Evidence Storage Account
 resource "azurerm_storage_account" "evidence" {
@@ -25,26 +28,26 @@ resource "azurerm_storage_account" "evidence" {
   resource_group_name      = var.resource_group_name
   location                 = var.location
   account_tier             = "Standard"
-  account_replication_type = "GRS"
+  account_replication_type = "LRS"
 
-    # Security hardening
-  min_tls_version            = "TLS1_2"        # CKV_AZURE_44
-  https_traffic_only_enabled = true
-  allow_nested_items_to_be_public = false           # already there
-  public_network_access_enabled   = false           # CKV_AZURE_59
+  # Security hardening
+  min_tls_version                 = "TLS1_2" # CKV_AZURE_44
+  https_traffic_only_enabled      = true
+  allow_nested_items_to_be_public = false # already there
+  public_network_access_enabled   = false # CKV_AZURE_59
   # NOTE:
   # shared_access_key_enabled is intentionally left as default (true)
   # because the azurerm provider currently needs key-based auth
   # to manage queue logging properties.
   # We enforce access control via RBAC & private endpoints instead.
-  shared_access_key_enabled     = false           # Disabled due to provider limitation
+  shared_access_key_enabled = true # Disabled due to provider limitation
 
   # SAS expiration policy – force short-lived SAS
   sas_policy {
-  expiration_action = "Log"
-  # 7 days, in DD.HH:MM:SS format
-  expiration_period = "07.00:00:00"
-}
+    expiration_action = "Log"
+    # 7 days, in DD.HH:MM:SS format
+    expiration_period = "07.00:00:00"
+  }
   blob_properties {
     # Soft delete for blobs
     delete_retention_policy {
@@ -56,13 +59,13 @@ resource "azurerm_storage_account" "evidence" {
   # Satisfies CKV_AZURE_33 (read/write/delete logging on queues)
 
   identity {
-    type = "SystemAssigned, UserAssigned"
+    type         = "SystemAssigned, UserAssigned"
     identity_ids = [var.user_assigned_identity_id]
   }
 
   # Customer-managed key for evidence-at-rest encryption
-  customer_managed_key {                        # CKV2_AZURE_1 (part 1)
-    key_vault_key_id = var.cmk_key_vault_key_id
+  customer_managed_key { # CKV2_AZURE_1 (part 1)
+    key_vault_key_id          = var.cmk_key_vault_key_id
     user_assigned_identity_id = var.user_assigned_identity_id
   }
   tags = {
@@ -96,7 +99,7 @@ resource "azurerm_storage_container" "containers" {
 resource "azurerm_private_endpoint" "evidence_blob" {
   name                = "${var.storage_account_name}-pe-blob"
   location            = var.location
-  resource_group_name = var.vnet_resource_group_name  # Use the VNet's resource group
+  resource_group_name = var.vnet_resource_group_name # Use the VNet's resource group
   subnet_id           = var.private_endpoint_subnet_id
 
   private_service_connection {
@@ -119,19 +122,16 @@ resource "azurerm_monitor_diagnostic_setting" "evidence_blob_logging" {
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
   # Blob read/write/delete logs – satisfies CKV2_AZURE_21
-  log {
+  enabled_log {
     category = "StorageRead"
-    enabled  = true
   }
 
-  log {
+  enabled_log {
     category = "StorageWrite"
-    enabled  = true
   }
 
-  log {
+  enabled_log {
     category = "StorageDelete"
-    enabled  = true
   }
 
   metric {

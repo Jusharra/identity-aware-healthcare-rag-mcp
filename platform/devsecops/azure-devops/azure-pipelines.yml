@@ -393,16 +393,6 @@ stages:
               inlineScript: |
                 set -e
                 
-                # TEMPORARY: Enable public access for evidence upload
-                echo "Temporarily enabling public network access for evidence upload..."
-                az storage account update \
-                  --name ragmcpevidence001 \
-                  --resource-group rg-rag-mcp-sec \
-                  --public-network-access Enabled
-                
-                # Wait for change to propagate
-                sleep 10
-                
                 # Create evidence directory if it doesn't exist
                 mkdir -p platform/evidence
                 
@@ -431,6 +421,18 @@ stages:
                 echo "Evidence report generated at platform/evidence/deployment_evidence.json"
                 cat platform/evidence/deployment_evidence.json
                 
+                # Temporarily enable public access and bypass for Azure services
+                echo "Configuring storage account for evidence upload..."
+                az storage account update \
+                  --name ragmcpevidence001 \
+                  --resource-group rg-rag-mcp-sec \
+                  --public-network-access Enabled \
+                  --bypass AzureServices \
+                  --default-action Allow
+                
+                # Wait for changes to propagate
+                sleep 15
+                
                 # Upload evidence to Azure Storage (evidence container)
                 echo "Uploading evidence to storage account..."
                 az storage blob upload \
@@ -440,14 +442,15 @@ stages:
                   --file platform/evidence/deployment_evidence.json \
                   --auth-mode login
                 
-                # IMPORTANT: Disable public access again for security
-                echo "Re-disabling public network access..."
+                # Re-secure storage account
+                echo "Re-securing storage account..."
                 az storage account update \
                   --name ragmcpevidence001 \
                   --resource-group rg-rag-mcp-sec \
-                  --public-network-access Disabled
+                  --public-network-access Disabled \
+                  --default-action Deny
                 
-                echo "Evidence uploaded and public access disabled"
+                echo "Evidence uploaded and storage account secured"
 
           - publish: platform/evidence
             artifact: evidence_bundle

@@ -120,13 +120,23 @@ stages:
               inlineScript: |
                 set -e
 
+                # AzureCLI@2 provides these variables when addSpnToEnvironment: true
+                # - servicePrincipalId (client ID)
+                # - servicePrincipalKey (client secret)
+                # - tenantId
+                # But NOT subscriptionId directly - we need to get it from az CLI
+
+                # Get subscription ID from Azure CLI context
+                SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+                
                 # Export SPN into ARM_* env vars for azurerm provider
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
-                export ARM_SUBSCRIPTION_ID="$subscriptionId"
+                export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
 
                 echo "Using subscription: $ARM_SUBSCRIPTION_ID"
+                echo "Using tenant: $ARM_TENANT_ID"
 
                 cd $(TF_ROOT)
 

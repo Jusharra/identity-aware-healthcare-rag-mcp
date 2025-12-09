@@ -207,13 +207,17 @@ stages:
                 echo "Logged in as:"
                 az account show -o table
 
+                # Get subscription ID from Azure CLI context
+                SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
                 # Export ARM credentials for Terraform
                 export ARM_CLIENT_ID="$servicePrincipalId"
                 export ARM_CLIENT_SECRET="$servicePrincipalKey"
                 export ARM_TENANT_ID="$tenantId"
-                export ARM_SUBSCRIPTION_ID="$subscriptionId"
+                export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
 
                 echo "Using subscription: $ARM_SUBSCRIPTION_ID"
+                echo "Using tenant: $ARM_TENANT_ID"
 
                 cd $(TF_ROOT)
 

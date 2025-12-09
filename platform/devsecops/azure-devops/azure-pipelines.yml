@@ -173,7 +173,28 @@ stages:
                 "data.terraform.guardrails.deny"
             displayName: "Evaluate OPA Terraform guardrails"
 
-  - task: AzureCLI@2
+  - stage: Deploy
+    displayName: "Deploy (manual)"
+    dependsOn: PolicyCheck
+    jobs:
+      - job: deploy
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - checkout: self
+
+          # Install Terraform
+          - script: |
+              set -e
+              TF_VERSION=1.8.5
+              curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
+              sudo unzip -o terraform.zip -d /usr/local/bin
+              rm terraform.zip
+              terraform -version
+            displayName: "Install Terraform CLI"
+
+          # 🔐 Azure login + Terraform apply using service connection
+          - task: AzureCLI@2
             displayName: "Terraform apply"
             inputs:
               azureSubscription: "mcp-azure-terraform-spn"

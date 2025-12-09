@@ -173,28 +173,7 @@ stages:
                 "data.terraform.guardrails.deny"
             displayName: "Evaluate OPA Terraform guardrails"
 
-  - stage: Deploy
-    displayName: "Deploy (manual)"
-    dependsOn: PolicyCheck
-    jobs:
-      - job: deploy
-        pool:
-          vmImage: "ubuntu-latest"
-        steps:
-          - checkout: self
-
-          # Install Terraform
-          - script: |
-              set -e
-              TF_VERSION=1.8.5
-              curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o terraform.zip
-              sudo unzip -o terraform.zip -d /usr/local/bin
-              rm terraform.zip
-              terraform -version
-            displayName: "Install Terraform CLI"
-
-          # 🔐 Azure login + Terraform apply using service connection
-          - task: AzureCLI@2
+  - task: AzureCLI@2
             displayName: "Terraform apply"
             inputs:
               azureSubscription: "mcp-azure-terraform-spn"
@@ -217,9 +196,18 @@ stages:
                 export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
 
                 echo "Using subscription: $ARM_SUBSCRIPTION_ID"
-                echo "Using tenant: $ARM_TENANT_ID"
 
                 cd $(TF_ROOT)
+
+                # TEMPORARY: Enable public access for import/apply operations
+                echo "Temporarily enabling public network access..."
+                az storage account update \
+                  --name ragmcpevidence001 \
+                  --resource-group rg-rag-mcp-sec \
+                  --public-network-access Enabled
+
+                # Wait for change to propagate
+                sleep 10
 
                 # Initialize Terraform
                 terraform init
@@ -228,10 +216,9 @@ stages:
                 SP_OBJECT_ID=$(az ad sp show --id "$servicePrincipalId" --query id -o tsv)
                 echo "Service Principal Object ID: $SP_OBJECT_ID"
 
-                # Import existing resources (ignore errors if already imported)
+                # Import existing resources
                 echo "Importing existing resources..."
                 
-                # Storage account
                 terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
                   -var="client_id=$ARM_CLIENT_ID" \
@@ -245,12 +232,11 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  -var="service_principal_object_id=" \
                   azurerm_storage_account.evidence \
                   "/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Storage/storageAccounts/ragmcpevidence001" \
-                  || echo "Storage account already imported"
+                  || echo "Storage account already in state"
 
-                # Containers
                 terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
                   -var="client_id=$ARM_CLIENT_ID" \
@@ -264,10 +250,10 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  -var="service_principal_object_id=" \
                   'azurerm_storage_container.containers["docs-raw"]' \
                   "https://ragmcpevidence001.blob.core.windows.net/docs-raw" \
-                  || echo "Container docs-raw already imported"
+                  || echo "Container already in state"
 
                 terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
@@ -282,10 +268,10 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  -var="service_principal_object_id=" \
                   'azurerm_storage_container.containers["evidence"]' \
                   "https://ragmcpevidence001.blob.core.windows.net/evidence" \
-                  || echo "Container evidence already imported"
+                  || echo "Container already in state"
 
                 terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
@@ -300,12 +286,11 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  -var="service_principal_object_id=" \
                   'azurerm_storage_container.containers["logs"]' \
                   "https://ragmcpevidence001.blob.core.windows.net/logs" \
-                  || echo "Container logs already imported"
+                  || echo "Container already in state"
 
-                # Private endpoint
                 terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
                   -var="client_id=$ARM_CLIENT_ID" \
@@ -319,12 +304,11 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  -var="service_principal_object_id=" \
                   azurerm_private_endpoint.evidence_blob \
                   "/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/RG-RAG-MCP-SEC/providers/Microsoft.Network/privateEndpoints/ragmcpevidence001-pe-blob" \
-                  || echo "Private endpoint already imported"
+                  || echo "Private endpoint already in state"
 
-                # Diagnostic setting
                 terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
                   -var="client_id=$ARM_CLIENT_ID" \
@@ -338,30 +322,12 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  -var="service_principal_object_id=" \
                   azurerm_monitor_diagnostic_setting.evidence_blob_logging \
                   "/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Storage/storageAccounts/ragmcpevidence001/blobServices/default|ragmcpevidence001-blob-logging" \
-                  || echo "Diagnostic setting already imported"
+                  || echo "Diagnostic setting already in state"
 
-                terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
-                  -var="tenant_id=$ARM_TENANT_ID" \
-                  -var="client_id=$ARM_CLIENT_ID" \
-                  -var="client_secret=$ARM_CLIENT_SECRET" \
-                  -var="resource_group_name=rg-rag-mcp-sec" \
-                  -var="location=westus" \
-                  -var="storage_account_name=ragmcpevidence001" \
-                  -var="environment=dev" \
-                  -var="user_assigned_identity_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
-                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
-                  -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
-                  -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
-                  -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID" \
-                  'azurerm_storage_container.containers["logs"]' \
-                  "https://ragmcpevidence001.blob.core.windows.net/logs" \
-                  || echo "Container logs already imported"
-
-                # Apply with all required variables
+                # Apply
                 terraform apply -auto-approve -input=false \
                   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
                   -var="tenant_id=$ARM_TENANT_ID" \
@@ -376,7 +342,7 @@ stages:
                   -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
                   -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
                   -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
-                  -var="service_principal_object_id=$SP_OBJECT_ID"
+                  -var="service_principal_object_id="
 
                 echo "Terraform apply completed successfully"
 

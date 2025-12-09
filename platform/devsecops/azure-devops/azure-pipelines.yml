@@ -393,6 +393,16 @@ stages:
               inlineScript: |
                 set -e
                 
+                # TEMPORARY: Enable public access for evidence upload
+                echo "Temporarily enabling public network access for evidence upload..."
+                az storage account update \
+                  --name ragmcpevidence001 \
+                  --resource-group rg-rag-mcp-sec \
+                  --public-network-access Enabled
+                
+                # Wait for change to propagate
+                sleep 10
+                
                 # Create evidence directory if it doesn't exist
                 mkdir -p platform/evidence
                 
@@ -421,7 +431,7 @@ stages:
                 echo "Evidence report generated at platform/evidence/deployment_evidence.json"
                 cat platform/evidence/deployment_evidence.json
                 
-                # Optional: Upload evidence to Azure Storage (evidence container)
+                # Upload evidence to Azure Storage (evidence container)
                 echo "Uploading evidence to storage account..."
                 az storage blob upload \
                   --account-name ragmcpevidence001 \
@@ -429,6 +439,15 @@ stages:
                   --name "deployment_$(Build.BuildId)_$(date +%Y%m%d_%H%M%S).json" \
                   --file platform/evidence/deployment_evidence.json \
                   --auth-mode login
+                
+                # IMPORTANT: Disable public access again for security
+                echo "Re-disabling public network access..."
+                az storage account update \
+                  --name ragmcpevidence001 \
+                  --resource-group rg-rag-mcp-sec \
+                  --public-network-access Disabled
+                
+                echo "Evidence uploaded and public access disabled"
 
           - publish: platform/evidence
             artifact: evidence_bundle

@@ -421,32 +421,34 @@ stages:
                 echo "Evidence report generated at platform/evidence/deployment_evidence.json"
                 cat platform/evidence/deployment_evidence.json
                 
-                # Temporarily enable public access and bypass for Azure services
+                # Temporarily enable shared key access and public network
                 echo "Configuring storage account for evidence upload..."
                 az storage account update \
                   --name ragmcpevidence001 \
                   --resource-group rg-rag-mcp-sec \
+                  --allow-shared-key-access true \
                   --public-network-access Enabled \
                   --bypass AzureServices \
                   --default-action Allow
                 
                 # Wait for changes to propagate
-                sleep 15
+                sleep 20
                 
-                # Upload evidence to Azure Storage (evidence container)
+                # Upload evidence using account key (bypasses network restrictions)
                 echo "Uploading evidence to storage account..."
                 az storage blob upload \
                   --account-name ragmcpevidence001 \
                   --container-name evidence \
                   --name "deployment_$(Build.BuildId)_$(date +%Y%m%d_%H%M%S).json" \
                   --file platform/evidence/deployment_evidence.json \
-                  --auth-mode login
+                  --account-key $(az storage account keys list --account-name ragmcpevidence001 --resource-group rg-rag-mcp-sec --query '[0].value' -o tsv)
                 
                 # Re-secure storage account
                 echo "Re-securing storage account..."
                 az storage account update \
                   --name ragmcpevidence001 \
                   --resource-group rg-rag-mcp-sec \
+                  --allow-shared-key-access false \
                   --public-network-access Disabled \
                   --default-action Deny
                 

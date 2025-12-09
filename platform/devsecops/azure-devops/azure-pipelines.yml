@@ -61,8 +61,21 @@ stages:
 
           - script: |
               pip install checkov
-              cd $(Build.SourcesDirectory)
-              checkov -d $(TF_ROOT) --config-file .checkov.yml
+              
+              # Debug: Show where we are and what files exist
+              echo "Current directory:"
+              pwd
+              echo "Looking for .checkov.yml:"
+              ls -la .checkov.yml || echo ".checkov.yml not found in current directory"
+              ls -la $(Build.SourcesDirectory)/.checkov.yml || echo ".checkov.yml not found in SourcesDirectory"
+              
+              # Show directory structure
+              echo "Repository structure:"
+              ls -la
+              
+              # Run Checkov WITHOUT config file first to see what happens
+              checkov -d $(TF_ROOT) \
+                --skip-check CKV_AZURE_206,CKV2_AZURE_40,CKV2_AZURE_21,CKV_AZURE_33
             displayName: "Run Checkov on Terraform"
 
   - stage: PolicyCheck

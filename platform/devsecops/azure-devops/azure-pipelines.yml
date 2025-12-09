@@ -228,6 +228,81 @@ stages:
                 SP_OBJECT_ID=$(az ad sp show --id "$servicePrincipalId" --query id -o tsv)
                 echo "Service Principal Object ID: $SP_OBJECT_ID"
 
+                # Import existing resources (ignore errors if already imported)
+                echo "Importing existing resources..."
+                
+                terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+                  -var="tenant_id=$ARM_TENANT_ID" \
+                  -var="client_id=$ARM_CLIENT_ID" \
+                  -var="client_secret=$ARM_CLIENT_SECRET" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
+                  -var="environment=dev" \
+                  -var="user_assigned_identity_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
+                  -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                  -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
+                  -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
+                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  azurerm_storage_account.evidence \
+                  "/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.Storage/storageAccounts/ragmcpevidence001" \
+                  || echo "Storage account already imported or doesn't exist"
+
+                terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+                  -var="tenant_id=$ARM_TENANT_ID" \
+                  -var="client_id=$ARM_CLIENT_ID" \
+                  -var="client_secret=$ARM_CLIENT_SECRET" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
+                  -var="environment=dev" \
+                  -var="user_assigned_identity_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
+                  -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                  -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
+                  -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
+                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  'azurerm_storage_container.containers["docs-raw"]' \
+                  "https://ragmcpevidence001.blob.core.windows.net/docs-raw" \
+                  || echo "Container docs-raw already imported"
+
+                terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+                  -var="tenant_id=$ARM_TENANT_ID" \
+                  -var="client_id=$ARM_CLIENT_ID" \
+                  -var="client_secret=$ARM_CLIENT_SECRET" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
+                  -var="environment=dev" \
+                  -var="user_assigned_identity_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
+                  -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                  -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
+                  -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
+                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  'azurerm_storage_container.containers["evidence"]' \
+                  "https://ragmcpevidence001.blob.core.windows.net/evidence" \
+                  || echo "Container evidence already imported"
+
+                terraform import -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+                  -var="tenant_id=$ARM_TENANT_ID" \
+                  -var="client_id=$ARM_CLIENT_ID" \
+                  -var="client_secret=$ARM_CLIENT_SECRET" \
+                  -var="resource_group_name=rg-rag-mcp-sec" \
+                  -var="location=westus" \
+                  -var="storage_account_name=ragmcpevidence001" \
+                  -var="environment=dev" \
+                  -var="user_assigned_identity_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-identities/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-evidence-lab" \
+                  -var="cmk_key_vault_key_id=https://kv-security-ragmcp.vault.azure.net/keys/kv-evidence-key/8de7f2cf2d4a4420945ac3ce5782e7ff" \
+                  -var="private_endpoint_subnet_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-network/providers/Microsoft.Network/virtualNetworks/vnet-hub/subnets/snet-private-endpoints" \
+                  -var="log_analytics_workspace_id=/subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/rg-rag-mcp-sec/providers/Microsoft.OperationalInsights/workspaces/log-rag-mcp-dev" \
+                  -var="vnet_resource_group_name=RG-RAG-MCP-SEC" \
+                  -var="service_principal_object_id=$SP_OBJECT_ID" \
+                  'azurerm_storage_container.containers["logs"]' \
+                  "https://ragmcpevidence001.blob.core.windows.net/logs" \
+                  || echo "Container logs already imported"
+
                 # Apply with all required variables
                 terraform apply -auto-approve -input=false \
                   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \

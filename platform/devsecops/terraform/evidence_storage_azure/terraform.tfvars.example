@@ -1,0 +1,10 @@
+# Example Terraform variables - copy to terraform.tfvars and fill in actual values
+subscription_id            = "your-subscription-id"
+tenant_id                 = "your-tenant-id"
+client_id                 = "your-client-id"
+client_secret             = "FILL_IN_YOUR_SECRET"
+resource_group_name       = "rg-rag-mcp-sec"
+location                  = "westus"
+storage_account_name      = "ragmcpevidence001"
+environment               = "dev"
+# ... rest of variables

@@ -1,7 +1,31 @@
-terraform.tfvars
+# Add to root .gitignore
+cat >> .gitignore <<EOF
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
 *.tfvars
-.terraform/
-terraform.tfstate*
-.terraform.lock.hcl
+*.tfvars.json
 *.backup
-terraform.tfvars*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Sensitive files
+*.pem
+*.key
+*.secret
+*credentials*
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.*.local
+*.env
+EOF

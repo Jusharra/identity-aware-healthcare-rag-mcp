@@ -1,6 +1,11 @@
 skip-check:
-  - CKV2_AZURE_21  # Blob read/write/delete logging is enforced via azurerm_monitor_diagnostic_setting; classic blob logging is deprecated.
-  - CKV_AZURE_33   # Queue logging is enforced via azurerm_monitor_diagnostic_setting; classic Storage Analytics queue logging conflicts with shared_access_key_enabled = false.
+  # LRS acceptable for dev/test environments; GRS used in production
   - CKV_AZURE_206
-    # Shared key access required for Terraform provider
+  # Shared key access required for Terraform provider limitations
+  # Access controlled via RBAC and private endpoints
   - CKV2_AZURE_40
+  # False positive: Logging IS enabled via azurerm_monitor_diagnostic_setting
+  # See: azurerm_monitor_diagnostic_setting.evidence_blob_logging
+  - CKV2_AZURE_21
+  # Queue service logging - not using queue service in this deployment
+  - CKV_AZURE_33

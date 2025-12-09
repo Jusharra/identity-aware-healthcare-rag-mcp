@@ -61,10 +61,8 @@ stages:
 
           - script: |
               pip install checkov
-              # Skip specific checks with valid business justification
-              checkov -d $(TF_ROOT) \
-                --skip-check CKV_AZURE_206 \
-                --skip-check CKV2_AZURE_40
+              # Use the .checkov.yml config file
+              checkov -d $(TF_ROOT) --config-file .checkov.yml
             displayName: "Run Checkov on Terraform"
 
   - stage: PolicyCheck

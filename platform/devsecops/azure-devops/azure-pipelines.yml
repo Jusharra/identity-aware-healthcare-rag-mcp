@@ -61,7 +61,7 @@ stages:
 
           - script: |
               pip install checkov
-              # Use the .checkov.yml config file
+              cd $(Build.SourcesDirectory)
               checkov -d $(TF_ROOT) --config-file .checkov.yml
             displayName: "Run Checkov on Terraform"
 
